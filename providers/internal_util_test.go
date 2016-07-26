@@ -26,7 +26,7 @@ func (tp *ValidateSessionStateTestProvider) ValidateSessionState(s *SessionState
 
 type ValidateSessionStateTest struct {
 	backend       *httptest.Server
-	response_code int
+	responseCode int
 	provider      *ValidateSessionStateTestProvider
 	header        http.Header
 }
@@ -40,7 +40,7 @@ func NewValidateSessionStateTest() *ValidateSessionStateTest {
 				w.WriteHeader(500)
 				w.Write([]byte("unknown URL"))
 			}
-			token_param := r.FormValue("access_token")
+			token_param := r.FormValue("accessToken")
 			if token_param == "" {
 				missing := false
 				received_headers := r.Header
@@ -56,7 +56,7 @@ func NewValidateSessionStateTest() *ValidateSessionStateTest {
 					w.Write([]byte("no token param and missing or incorrect headers"))
 				}
 			}
-			w.WriteHeader(vt_test.response_code)
+			w.WriteHeader(vt_test.responseCode)
 			w.Write([]byte("only code matters; contents disregarded"))
 
 		}))
@@ -70,7 +70,7 @@ func NewValidateSessionStateTest() *ValidateSessionStateTest {
 			},
 		},
 	}
-	vt_test.response_code = 200
+	vt_test.responseCode = 200
 	return &vt_test
 }
 
@@ -116,6 +116,6 @@ func TestValidateSessionStateRequestNetworkFailure(t *testing.T) {
 func TestValidateSessionStateExpiredToken(t *testing.T) {
 	vt_test := NewValidateSessionStateTest()
 	defer vt_test.Close()
-	vt_test.response_code = 401
+	vt_test.responseCode = 401
 	assert.Equal(t, false, validateToken(vt_test.provider, "foobar", nil))
 }

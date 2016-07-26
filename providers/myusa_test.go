@@ -34,7 +34,7 @@ func testMyUsaProvider(hostname string) *MyUsaProvider {
 
 func testMyUsaBackend(payload string) *httptest.Server {
 	path := "/api/v1/profile"
-	query := "access_token=imaginary_access_token"
+	query := "accessToken=imaginary_accessToken"
 
 	return httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +103,7 @@ func TestMyUsaProviderGetEmailAddress(t *testing.T) {
 	b_url, _ := url.Parse(b.URL)
 	p := testMyUsaProvider(b_url.Host)
 
-	session := &SessionState{AccessToken: "imaginary_access_token"}
+	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "michael.bland@gsa.gov", email)
@@ -121,7 +121,7 @@ func TestMyUsaProviderGetEmailAddressFailedRequest(t *testing.T) {
 	// We'll trigger a request failure by using an unexpected access
 	// token. Alternatively, we could allow the parsing of the payload as
 	// JSON to fail.
-	session := &SessionState{AccessToken: "unexpected_access_token"}
+	session := &SessionState{AccessToken: "unexpected_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.NotEqual(t, nil, err)
 	assert.Equal(t, "", email)
@@ -134,7 +134,7 @@ func TestMyUsaProviderGetEmailAddressEmailNotPresentInPayload(t *testing.T) {
 	b_url, _ := url.Parse(b.URL)
 	p := testMyUsaProvider(b_url.Host)
 
-	session := &SessionState{AccessToken: "imaginary_access_token"}
+	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.NotEqual(t, nil, err)
 	assert.Equal(t, "", email)

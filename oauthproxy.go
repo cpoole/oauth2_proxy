@@ -297,6 +297,7 @@ func (p *OAuthProxy) LoadCookiedSession(req *http.Request) (*providers.SessionSt
 }
 
 func (p *OAuthProxy) SaveSession(rw http.ResponseWriter, req *http.Request, s *providers.SessionState) error {
+	//TODO: save cloudfront cookie
 	value, err := p.provider.CookieForSession(s, p.CookieCipher)
 	if err != nil {
 		return err

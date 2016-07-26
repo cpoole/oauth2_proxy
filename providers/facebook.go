@@ -25,7 +25,7 @@ func NewFacebookProvider(p *ProviderData) *FacebookProvider {
 	if p.RedeemURL.String() == "" {
 		p.RedeemURL = &url.URL{Scheme: "https",
 			Host: "graph.facebook.com",
-			Path: "/v2.5/oauth/access_token",
+			Path: "/v2.5/oauth/accessToken",
 		}
 	}
 	if p.ProfileURL.String() == "" {
@@ -43,11 +43,11 @@ func NewFacebookProvider(p *ProviderData) *FacebookProvider {
 	return &FacebookProvider{ProviderData: p}
 }
 
-func getFacebookHeader(access_token string) http.Header {
+func getFacebookHeader(accessToken string) http.Header {
 	header := make(http.Header)
 	header.Set("Accept", "application/json")
 	header.Set("x-li-format", "json")
-	header.Set("Authorization", fmt.Sprintf("Bearer %s", access_token))
+	header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	return header
 }
 

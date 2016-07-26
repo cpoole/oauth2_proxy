@@ -78,7 +78,7 @@ func TestGoogleProviderOverrides(t *testing.T) {
 }
 
 type redeemResponse struct {
-	AccessToken  string `json:"access_token"`
+	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int64  `json:"expires_in"`
 	IdToken      string `json:"id_token"`

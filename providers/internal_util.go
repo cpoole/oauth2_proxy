@@ -10,13 +10,13 @@ import (
 )
 
 // validateToken returns true if token is valid
-func validateToken(p Provider, access_token string, header http.Header) bool {
-	if access_token == "" || p.Data().ValidateURL == nil {
+func validateToken(p Provider, accessToken string, header http.Header) bool {
+	if accessToken == "" || p.Data().ValidateURL == nil {
 		return false
 	}
 	endpoint := p.Data().ValidateURL.String()
 	if len(header) == 0 {
-		params := url.Values{"access_token": {access_token}}
+		params := url.Values{"accessToken": {accessToken}}
 		endpoint = endpoint + "?" + params.Encode()
 	}
 	resp, err := api.RequestUnparsedResponse(endpoint, header)

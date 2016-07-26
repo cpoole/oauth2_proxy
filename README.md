@@ -106,7 +106,7 @@ The GitHub auth provider supports two additional parameters to restrict authenti
 If you are using GitHub enterprise, make sure you set the following to the appropriate url:
 
     -login-url="http(s)://<enterprise github host>/login/oauth/authorize"
-    -redeem-url="http(s)://<enterprise github host>/login/oauth/access_token"
+    -redeem-url="http(s)://<enterprise github host>/login/oauth/accessToken"
     -validate-url="http(s)://<enterprise github host>/api/v3"
 
 ### GitLab Auth Provider
@@ -185,7 +185,7 @@ Usage of oauth2_proxy:
   -http-address="127.0.0.1:4180": [http://]<addr>:<port> or unix://<path> to listen on for HTTP clients
   -https-address=":443": <addr>:<port> to listen on for HTTPS clients
   -login-url="": Authentication endpoint
-  -pass-access-token=false: pass OAuth access_token to upstream via X-Forwarded-Access-Token header
+  -pass-access-token=false: pass OAuth accessToken to upstream via X-Forwarded-Access-Token header
   -pass-basic-auth=true: pass HTTP Basic Auth, X-Forwarded-User and X-Forwarded-Email information to upstream
   -pass-host-header=true: pass the request Host Header to upstream
   -profile-url="": Profile access endpoint

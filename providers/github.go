@@ -30,7 +30,7 @@ func NewGitHubProvider(p *ProviderData) *GitHubProvider {
 		p.RedeemURL = &url.URL{
 			Scheme: "https",
 			Host:   "github.com",
-			Path:   "/login/oauth/access_token",
+			Path:   "/login/oauth/accessToken",
 		}
 	}
 	// ValidationURL is the API Base URL
@@ -62,7 +62,7 @@ func (p *GitHubProvider) hasOrg(accessToken string) (bool, error) {
 	}
 
 	params := url.Values{
-		"access_token": {accessToken},
+		"accessToken": {accessToken},
 		"limit":        {"100"},
 	}
 
@@ -117,7 +117,7 @@ func (p *GitHubProvider) hasOrgAndTeam(accessToken string) (bool, error) {
 	}
 
 	params := url.Values{
-		"access_token": {accessToken},
+		"accessToken": {accessToken},
 		"limit":        {"100"},
 	}
 
@@ -197,7 +197,7 @@ func (p *GitHubProvider) GetEmailAddress(s *SessionState) (string, error) {
 	}
 
 	params := url.Values{
-		"access_token": {s.AccessToken},
+		"accessToken": {s.AccessToken},
 	}
 
 	endpoint := &url.URL{

@@ -51,7 +51,7 @@ type Options struct {
 	SkipAuthRegex      []string `flag:"skip-auth-regex" cfg:"skip_auth_regex"`
 	PassBasicAuth      bool     `flag:"pass-basic-auth" cfg:"pass_basic_auth"`
 	BasicAuthPassword  string   `flag:"basic-auth-password" cfg:"basic_auth_password"`
-	PassAccessToken    bool     `flag:"pass-access-token" cfg:"pass_access_token"`
+	PassAccessToken    bool     `flag:"pass-access-token" cfg:"pass_accessToken"`
 	PassHostHeader     bool     `flag:"pass-host-header" cfg:"pass_host_header"`
 	SkipProviderButton bool     `flag:"skip-provider-button" cfg:"skip_provider_button"`
 
@@ -174,7 +174,7 @@ func (o *Options) Validate() error {
 			msgs = append(msgs, fmt.Sprintf(
 				"cookie_secret must be 16, 24, or 32 bytes "+
 					"to create an AES cipher when "+
-					"pass_access_token == true or "+
+					"pass_accessToken == true or "+
 					"cookie_refresh != 0, but is %d bytes.%s",
 				len(secretBytes(o.CookieSecret)), suffix))
 		}

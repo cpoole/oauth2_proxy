@@ -60,9 +60,9 @@ func (p *AzureProvider) Configure(tenant string) {
 	}
 }
 
-func getAzureHeader(access_token string) http.Header {
+func getAzureHeader(accessToken string) http.Header {
 	header := make(http.Header)
-	header.Set("Authorization", fmt.Sprintf("Bearer %s", access_token))
+	header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	return header
 }
 

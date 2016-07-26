@@ -55,7 +55,7 @@ func (p *ProviderData) Redeem(redirectURL, code string) (s *SessionState, err er
 
 	// blindly try json and x-www-form-urlencoded
 	var jsonResponse struct {
-		AccessToken string `json:"access_token"`
+		AccessToken string `json:"accessToken"`
 	}
 	err = json.Unmarshal(body, &jsonResponse)
 	if err == nil {
@@ -70,7 +70,7 @@ func (p *ProviderData) Redeem(redirectURL, code string) (s *SessionState, err er
 	if err != nil {
 		return
 	}
-	if a := v.Get("access_token"); a != "" {
+	if a := v.Get("accessToken"); a != "" {
 		s = &SessionState{AccessToken: a}
 	} else {
 		err = fmt.Errorf("no access token found %s", body)

@@ -132,7 +132,7 @@ func (p *GoogleProvider) Redeem(redirectURL, code string) (s *SessionState, err 
 	}
 
 	var jsonResponse struct {
-		AccessToken  string `json:"access_token"`
+		AccessToken  string `json:"accessToken"`
 		RefreshToken string `json:"refresh_token"`
 		ExpiresIn    int64  `json:"expires_in"`
 		IdToken      string `json:"id_token"`
@@ -304,7 +304,7 @@ func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, 
 	}
 
 	var data struct {
-		AccessToken string `json:"access_token"`
+		AccessToken string `json:"accessToken"`
 		ExpiresIn   int64  `json:"expires_in"`
 	}
 	err = json.Unmarshal(body, &data)
