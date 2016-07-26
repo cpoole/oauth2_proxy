@@ -44,7 +44,7 @@ func NewGitLabProvider(p *ProviderData) *GitLabProvider {
 func (p *GitLabProvider) GetEmailAddress(s *SessionState) (string, error) {
 
 	req, err := http.NewRequest("GET",
-		p.ValidateURL.String()+"?access_token="+s.AccessToken, nil)
+		p.ValidateURL.String()+"?accessToken="+s.AccessToken, nil)
 	if err != nil {
 		log.Printf("failed building request %s", err)
 		return "", err

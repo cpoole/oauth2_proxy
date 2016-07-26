@@ -39,7 +39,7 @@
 # client_secret = ""
 
 ## Pass OAuth Access token to upstream via "X-Forwarded-Access-Token"
-# pass_access_token = false
+# pass_accessToken = false
 
 ## Authenticated Email Addresses File (one email per line)
 # authenticated_emails_file = ""
@@ -56,7 +56,7 @@
 ## Cookie Settings
 ## Name     - the cookie name
 ## Secret   - the seed string for secure cookies; should be 16, 24, or 32 bytes
-##            for use with an AES cipher when cookie_refresh or pass_access_token
+##            for use with an AES cipher when cookie_refresh or pass_accessToken
 ##            is set
 ## Domain   - (optional) cookie domain to force cookies to (ie: .yourcompany.com)
 ## Expire   - (duration) expire timeframe for cookie

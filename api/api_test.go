@@ -10,10 +10,10 @@ import (
 	"testing"
 )
 
-func testBackend(response_code int, payload string) *httptest.Server {
+func testBackend(responseCode int, payload string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(response_code)
+			w.WriteHeader(responseCode)
 			w.Write([]byte(payload))
 		}))
 }
@@ -72,7 +72,7 @@ func TestJsonParsingError(t *testing.T) {
 func TestRequestUnparsedResponseUsingAccessTokenParameter(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			token := r.FormValue("access_token")
+			token := r.FormValue("accessToken")
 			if r.URL.Path == "/" && token == "my_token" {
 				w.WriteHeader(200)
 				w.Write([]byte("some payload"))
@@ -83,7 +83,7 @@ func TestRequestUnparsedResponseUsingAccessTokenParameter(t *testing.T) {
 	defer backend.Close()
 
 	response, err := RequestUnparsedResponse(
-		backend.URL+"?access_token=my_token", nil)
+		backend.URL+"?accessToken=my_token", nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 200, response.StatusCode)
 	body, err := ioutil.ReadAll(response.Body)
@@ -98,7 +98,7 @@ func TestRequestUnparsedResponseUsingAccessTokenParameterFailedResponse(t *testi
 	backend.Close()
 
 	response, err := RequestUnparsedResponse(
-		backend.URL+"?access_token=my_token", nil)
+		backend.URL+"?accessToken=my_token", nil)
 	assert.NotEqual(t, nil, err)
 	assert.Equal(t, (*http.Response)(nil), response)
 }

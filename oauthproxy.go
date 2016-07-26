@@ -17,6 +17,8 @@ import (
 	"github.com/18F/hmacauth"
 	"github.com/bitly/oauth2_proxy/cookie"
 	"github.com/bitly/oauth2_proxy/providers"
+
+	"github.com/aws/aws-sdk-go/service/cloudfront/sign"
 )
 
 const SignatureHeader = "GAP-Signature"
@@ -39,7 +41,7 @@ type OAuthProxy struct {
 	CookieName     string
 	CookieDomain   string
 	CookieSecure   bool
-	CookieHttpOnly bool
+	CookieHTTPOnly bool
 	CookieExpire   time.Duration
 	CookieRefresh  time.Duration
 	Validator      func(string) bool
@@ -67,6 +69,11 @@ type OAuthProxy struct {
 	compiledRegex       []*regexp.Regexp
 	templates           *template.Template
 	Footer              string
+
+	opts *Options
+
+	CloudFrontName   string
+	CloudFrontExpire time.Duration
 }
 
 type UpstreamProxy struct {
@@ -129,8 +136,7 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 			} else {
 				setProxyDirector(proxy)
 			}
-			serveMux.Handle(path,
-				&UpstreamProxy{u.Host, proxy, auth})
+			serveMux.Handle(path, &UpstreamProxy{u.Host, proxy, auth})
 		case "file":
 			if u.Fragment != "" {
 				path = u.Fragment
@@ -159,7 +165,7 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 		refresh = fmt.Sprintf("after %s", opts.CookieRefresh)
 	}
 
-	log.Printf("Cookie settings: name:%s secure(https):%v httponly:%v expiry:%s domain:%s refresh:%s", opts.CookieName, opts.CookieSecure, opts.CookieHttpOnly, opts.CookieExpire, domain, refresh)
+	log.Printf("Cookie settings: name:%s secure(https):%v httponly:%v expiry:%s domain:%s refresh:%s", opts.CookieName, opts.CookieSecure, opts.CookieHTTPOnly, opts.CookieExpire, domain, refresh)
 
 	var cipher *cookie.Cipher
 	if opts.PassAccessToken || (opts.CookieRefresh != time.Duration(0)) {
@@ -175,7 +181,7 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 		CookieSeed:     opts.CookieSecret,
 		CookieDomain:   opts.CookieDomain,
 		CookieSecure:   opts.CookieSecure,
-		CookieHttpOnly: opts.CookieHttpOnly,
+		CookieHTTPOnly: opts.CookieHTTPOnly,
 		CookieExpire:   opts.CookieExpire,
 		CookieRefresh:  opts.CookieRefresh,
 		Validator:      validator,
@@ -200,6 +206,7 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 		CookieCipher:       cipher,
 		templates:          loadTemplates(opts.CustomTemplatesDir),
 		Footer:             opts.Footer,
+		opts:               opts,
 	}
 }
 
@@ -261,7 +268,7 @@ func (p *OAuthProxy) MakeCookie(req *http.Request, value string, expiration time
 		Value:    value,
 		Path:     "/",
 		Domain:   domain,
-		HttpOnly: p.CookieHttpOnly,
+		HttpOnly: p.CookieHTTPOnly,
 		Secure:   p.CookieSecure,
 		Expires:  now.Add(expiration),
 	}
@@ -275,14 +282,26 @@ func (p *OAuthProxy) SetCookie(rw http.ResponseWriter, req *http.Request, val st
 	http.SetCookie(rw, p.MakeCookie(req, val, p.CookieExpire, time.Now()))
 }
 
+//LoadCookiedSession check for the existance of the oauth2_proxy cookie and the cloudfront cookies
+//if either do not exist return immediately with an error
+//check to see if oauth cookie is valid, if it isnt both cookies need to be re-issued
+//finally check the cookie session and return
 func (p *OAuthProxy) LoadCookiedSession(req *http.Request) (*providers.SessionState, time.Duration, error) {
 	var age time.Duration
-	c, err := req.Cookie(p.CookieName)
+	oauthCookie, err := req.Cookie(p.CookieName)
+
 	if err != nil {
 		// always http.ErrNoCookie
 		return nil, age, fmt.Errorf("Cookie %q not present", p.CookieName)
 	}
-	val, timestamp, ok := cookie.Validate(c, p.CookieSeed, p.CookieExpire)
+	if p.opts.CloudFrontPKFile != "" {
+		_, err2 := req.Cookie(p.CloudFrontName)
+		if err2 != nil {
+			return nil, age, fmt.Errorf("Cookie %q not present", p.CloudFrontName)
+		}
+	}
+	//timestamp represents the timestamp of when the cookie was created
+	val, timestamp, ok := cookie.Validate(oauthCookie, p.CookieSeed, p.CookieExpire)
 	if !ok {
 		return nil, age, errors.New("Cookie Signature not valid")
 	}
@@ -297,11 +316,29 @@ func (p *OAuthProxy) LoadCookiedSession(req *http.Request) (*providers.SessionSt
 }
 
 func (p *OAuthProxy) SaveSession(rw http.ResponseWriter, req *http.Request, s *providers.SessionState) error {
+	//TODO: save cloudfront cookie
 	value, err := p.provider.CookieForSession(s, p.CookieCipher)
 	if err != nil {
 		return err
 	}
 	p.SetCookie(rw, req, value)
+
+	if p.provider.Data().CloudfrontKey != nil {
+		// Create the new CookieSigner to get signed cookies for CloudFront
+		// resource requests
+		signer := sign.NewCookieSigner(p.provider.Data().CloudfrontKeyID, p.provider.Data().CloudfrontKey)
+
+		// Get the cookies for the resource. These will be used
+		// to make the requests with
+		cloudFrontCookies, err := signer.Sign(p.provider.Data().CloudfrontBaseDomain, s.ExpiresOn)
+		if err != nil {
+			fmt.Println("failed to sign cookies", err)
+		}
+		for _, c := range cloudFrontCookies {
+			http.SetCookie(rw, c)
+		}
+	}
+
 	return nil
 }
 
@@ -526,6 +563,7 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//Authenticate
 func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int {
 	var saveSession, clearSession, revalidated bool
 	remoteAddr := getRemoteAddr(req)
@@ -536,10 +574,13 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 	}
 	if session != nil && sessionAge > p.CookieRefresh && p.CookieRefresh != time.Duration(0) {
 		log.Printf("%s refreshing %s old session cookie for %s (refresh after %s)", remoteAddr, sessionAge, session, p.CookieRefresh)
+		//refresh the cookie
 		saveSession = true
 	}
 
-	if ok, err := p.provider.RefreshSessionIfNeeded(session); err != nil {
+	//a truthy ok means the session was revalidated
+	ok, cloudFrontCookies, err := p.provider.RefreshSessionIfNeeded(session)
+	if err != nil {
 		log.Printf("%s removing session. error refreshing access token %s %s", remoteAddr, err, session)
 		clearSession = true
 		session = nil
@@ -547,7 +588,11 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 		saveSession = true
 		revalidated = true
 	}
+	//TODO: just to stop go from yelling at me
+	if cloudFrontCookies != nil {
+	}
 
+	//if session is expired then set session= nil, do not save the session, and clear the session
 	if session != nil && session.IsExpired() {
 		log.Printf("%s removing session. token expired %s", remoteAddr, session)
 		session = nil
@@ -555,6 +600,8 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 		clearSession = true
 	}
 
+	//it's too early to revalidate, session is still good.. double check to prevent tampering?
+	//TODO: wtf is the purpose of this
 	if saveSession && !revalidated && session != nil && session.AccessToken != "" {
 		if !p.provider.ValidateSessionState(session) {
 			log.Printf("%s removing session. error validating %s", remoteAddr, session)
@@ -564,6 +611,7 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 		}
 	}
 
+	//make sure user's email is allowed
 	if session != nil && session.Email != "" && !p.Validator(session.Email) {
 		log.Printf("%s Permission Denied: removing session %s", remoteAddr, session)
 		session = nil
@@ -571,6 +619,7 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 		clearSession = true
 	}
 
+	//you want to save the session
 	if saveSession && session != nil {
 		err := p.SaveSession(rw, req, session)
 		if err != nil {

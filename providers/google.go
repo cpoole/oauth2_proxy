@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/cloudfront/sign"
+
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/admin/directory/v1"
@@ -132,7 +134,7 @@ func (p *GoogleProvider) Redeem(redirectURL, code string) (s *SessionState, err 
 	}
 
 	var jsonResponse struct {
-		AccessToken  string `json:"access_token"`
+		AccessToken  string `json:"accessToken"`
 		RefreshToken string `json:"refresh_token"`
 		ExpiresIn    int64  `json:"expires_in"`
 		IdToken      string `json:"id_token"`
@@ -251,29 +253,31 @@ func (p *GoogleProvider) ValidateGroup(email string) bool {
 	return p.GroupValidator(email)
 }
 
-func (p *GoogleProvider) RefreshSessionIfNeeded(s *SessionState) (bool, error) {
+func (p *GoogleProvider) RefreshSessionIfNeeded(s *SessionState) (bool, []*http.Cookie, error) {
+	//refresh is not needed so return
 	if s == nil || s.ExpiresOn.After(time.Now()) || s.RefreshToken == "" {
-		return false, nil
+		return false, []*http.Cookie{}, nil
 	}
 
-	newToken, duration, err := p.redeemRefreshToken(s.RefreshToken)
+	//refresh is needed so get new token
+	newToken, cloudFrontCookies, duration, err := p.redeemRefreshToken(s.RefreshToken)
 	if err != nil {
-		return false, err
+		return false, []*http.Cookie{}, err
 	}
 
 	// re-check that the user is in the proper google group(s)
 	if !p.ValidateGroup(s.Email) {
-		return false, fmt.Errorf("%s is no longer in the group(s)", s.Email)
+		return false, []*http.Cookie{}, fmt.Errorf("%s is no longer in the group(s)", s.Email)
 	}
 
 	origExpiration := s.ExpiresOn
 	s.AccessToken = newToken
 	s.ExpiresOn = time.Now().Add(duration).Truncate(time.Second)
 	log.Printf("refreshed access token %s (expired on %s)", s, origExpiration)
-	return true, nil
+	return true, cloudFrontCookies, nil
 }
 
-func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, expires time.Duration, err error) {
+func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, cloudFrontTokens []*http.Cookie, expires time.Duration, err error) {
 	// https://developers.google.com/identity/protocols/OAuth2WebServer#refresh
 	params := url.Values{}
 	params.Add("client_id", p.ClientID)
@@ -304,7 +308,7 @@ func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, 
 	}
 
 	var data struct {
-		AccessToken string `json:"access_token"`
+		AccessToken string `json:"accessToken"`
 		ExpiresIn   int64  `json:"expires_in"`
 	}
 	err = json.Unmarshal(body, &data)
@@ -313,5 +317,20 @@ func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, 
 	}
 	token = data.AccessToken
 	expires = time.Duration(data.ExpiresIn) * time.Second
+
+	if p.CloudfrontKey != nil {
+		// Create the new CookieSigner to get signed cookies for CloudFront
+		// resource requests
+		signer := sign.NewCookieSigner(p.CloudfrontKeyID, p.CloudfrontKey)
+
+		// Get the cookies for the resource. These will be used
+		// to make the requests with
+		cloudFrontTokens, err := signer.Sign(p.CloudfrontBaseDomain, time.Now().Add(time.Duration(data.ExpiresIn)*time.Second).Truncate(time.Second))
+		if err != nil {
+			fmt.Println("failed to sign cookies", err)
+			return token, cloudFrontTokens, expires, err
+		}
+	}
+
 	return
 }

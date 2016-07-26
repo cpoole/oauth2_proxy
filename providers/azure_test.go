@@ -112,7 +112,7 @@ func testAzureBackend(payload string) *httptest.Server {
 			url := r.URL
 			if url.Path != path || url.RawQuery != query {
 				w.WriteHeader(404)
-			} else if r.Header.Get("Authorization") != "Bearer imaginary_access_token" {
+			} else if r.Header.Get("Authorization") != "Bearer imaginary_accessToken" {
 				w.WriteHeader(403)
 			} else {
 				w.WriteHeader(200)
@@ -128,7 +128,7 @@ func TestAzureProviderGetEmailAddress(t *testing.T) {
 	bURL, _ := url.Parse(b.URL)
 	p := testAzureProvider(bURL.Host)
 
-	session := &SessionState{AccessToken: "imaginary_access_token"}
+	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "user@windows.net", email)
@@ -141,7 +141,7 @@ func TestAzureProviderGetEmailAddressMailNull(t *testing.T) {
 	bURL, _ := url.Parse(b.URL)
 	p := testAzureProvider(bURL.Host)
 
-	session := &SessionState{AccessToken: "imaginary_access_token"}
+	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "user@windows.net", email)
@@ -154,7 +154,7 @@ func TestAzureProviderGetEmailAddressGetUserPrincipalName(t *testing.T) {
 	bURL, _ := url.Parse(b.URL)
 	p := testAzureProvider(bURL.Host)
 
-	session := &SessionState{AccessToken: "imaginary_access_token"}
+	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "user@windows.net", email)
@@ -167,7 +167,7 @@ func TestAzureProviderGetEmailAddressFailToGetEmailAddress(t *testing.T) {
 	bURL, _ := url.Parse(b.URL)
 	p := testAzureProvider(bURL.Host)
 
-	session := &SessionState{AccessToken: "imaginary_access_token"}
+	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.Equal(t, "type assertion to string failed", err.Error())
 	assert.Equal(t, "", email)
@@ -180,7 +180,7 @@ func TestAzureProviderGetEmailAddressEmptyUserPrincipalName(t *testing.T) {
 	bURL, _ := url.Parse(b.URL)
 	p := testAzureProvider(bURL.Host)
 
-	session := &SessionState{AccessToken: "imaginary_access_token"}
+	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "", email)
@@ -193,7 +193,7 @@ func TestAzureProviderGetEmailAddressIncorrectOtherMails(t *testing.T) {
 	bURL, _ := url.Parse(b.URL)
 	p := testAzureProvider(bURL.Host)
 
-	session := &SessionState{AccessToken: "imaginary_access_token"}
+	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
 	assert.Equal(t, "type assertion to string failed", err.Error())
 	assert.Equal(t, "", email)

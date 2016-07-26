@@ -19,6 +19,7 @@ import (
 // additionally, the 'value' is encrypted so it's opaque to the browser
 
 // Validate ensures a cookie is properly signed
+//returns the raw decoded string, timestamp of cookie creation, and whether or not cookie is valid
 func Validate(cookie *http.Cookie, seed string, expiration time.Duration) (value string, t time.Time, ok bool) {
 	// value, timestamp, sig
 	parts := strings.Split(cookie.Value, "|")

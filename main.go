@@ -33,7 +33,7 @@ func main() {
 	flagSet.Var(&upstreams, "upstream", "the http url(s) of the upstream endpoint or file:// paths for static files. Routing is based on the path")
 	flagSet.Bool("pass-basic-auth", true, "pass HTTP Basic Auth, X-Forwarded-User and X-Forwarded-Email information to upstream")
 	flagSet.String("basic-auth-password", "", "the password to set when passing the HTTP Basic Auth header")
-	flagSet.Bool("pass-access-token", false, "pass OAuth access_token to upstream via X-Forwarded-Access-Token header")
+	flagSet.Bool("pass-access-token", false, "pass OAuth accessToken to upstream via X-Forwarded-Access-Token header")
 	flagSet.Bool("pass-host-header", true, "pass the request Host Header to upstream")
 	flagSet.Var(&skipAuthRegex, "skip-auth-regex", "bypass authentication for requests path's that match (may be given multiple times)")
 	flagSet.Bool("skip-provider-button", false, "will skip sign-in-page to directly reach the next step: oauth/start")
@@ -73,6 +73,11 @@ func main() {
 	flagSet.String("scope", "", "OAuth scope specification")
 	flagSet.String("approval-prompt", "force", "OAuth approval_prompt")
 
+	flagSet.String("cloudfront-pk-file", "", "specify path to cloudfront private key file")
+	flagSet.String("cloudfront-key-id", "", "cloudfront key pair ID")
+	flagSet.Uint("cloudfront-expiration", 1, "cloudfront cookie expiration in number of hours")
+	flagSet.String("cloudfront-base-domain", "", "cloudfront base domain for files to serve")
+
 	flagSet.String("signature-key", "", "GAP-Signature request signature key (algorithm:secretkey)")
 
 	flagSet.Parse(os.Args[1:])
@@ -92,6 +97,8 @@ func main() {
 		}
 	}
 	cfg.LoadEnvForStruct(opts)
+
+	//options is part of github.com/mreiferson/go-options
 	options.Resolve(opts, flagSet, cfg)
 
 	err := opts.Validate()

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -55,7 +56,7 @@ func (p *ProviderData) Redeem(redirectURL, code string) (s *SessionState, err er
 
 	// blindly try json and x-www-form-urlencoded
 	var jsonResponse struct {
-		AccessToken string `json:"access_token"`
+		AccessToken string `json:"accessToken"`
 	}
 	err = json.Unmarshal(body, &jsonResponse)
 	if err == nil {
@@ -70,7 +71,7 @@ func (p *ProviderData) Redeem(redirectURL, code string) (s *SessionState, err er
 	if err != nil {
 		return
 	}
-	if a := v.Get("access_token"); a != "" {
+	if a := v.Get("accessToken"); a != "" {
 		s = &SessionState{AccessToken: a}
 	} else {
 		err = fmt.Errorf("no access token found %s", body)
@@ -119,7 +120,9 @@ func (p *ProviderData) ValidateSessionState(s *SessionState) bool {
 	return validateToken(p, s.AccessToken, nil)
 }
 
-// RefreshSessionIfNeeded
-func (p *ProviderData) RefreshSessionIfNeeded(s *SessionState) (bool, error) {
-	return false, nil
+// RefreshSessionIfNeeded this is a comment
+func (p *ProviderData) RefreshSessionIfNeeded(s *SessionState) (bool, []*http.Cookie, error) {
+	//log.SetOutput(os.Stdout)
+	log.Output(1, "yoyoyo TEST LOG ==============================")
+	return false, []*http.Cookie{}, nil
 }

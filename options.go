@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto"
+	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/18F/hmacauth"
+	"github.com/aws/aws-sdk-go/service/cloudfront/sign"
 	"github.com/bitly/oauth2_proxy/providers"
 )
 
@@ -25,6 +27,10 @@ type Options struct {
 	ClientSecret string `flag:"client-secret" cfg:"client_secret" env:"OAUTH2_PROXY_CLIENT_SECRET"`
 	TLSCertFile  string `flag:"tls-cert" cfg:"tls_cert_file"`
 	TLSKeyFile   string `flag:"tls-key" cfg:"tls_key_file"`
+
+	CloudFrontPKFile     string `flag:"cloudfront-pk-file" cfg:"cloudfront_pk_file" env:"CLOUDFRONT_PK_FILE"`
+	CloudFrontKeyID      string `flag:"cloudfront-key-id" cfg:"cloudfront_key_id" env:"CLOUDFRONT_KEY_ID"`
+	CloudFrontBaseDomain string `flag:"cloudfront-base-domain" cfg:"cloudfront-base-domain" env:"CLOUDFRONT_BASE_DOMAIN"`
 
 	AuthenticatedEmailsFile  string   `flag:"authenticated-emails-file" cfg:"authenticated_emails_file"`
 	AzureTenant              string   `flag:"azure-tenant" cfg:"azure_tenant"`
@@ -45,13 +51,13 @@ type Options struct {
 	CookieExpire   time.Duration `flag:"cookie-expire" cfg:"cookie_expire" env:"OAUTH2_PROXY_COOKIE_EXPIRE"`
 	CookieRefresh  time.Duration `flag:"cookie-refresh" cfg:"cookie_refresh" env:"OAUTH2_PROXY_COOKIE_REFRESH"`
 	CookieSecure   bool          `flag:"cookie-secure" cfg:"cookie_secure"`
-	CookieHttpOnly bool          `flag:"cookie-httponly" cfg:"cookie_httponly"`
+	CookieHTTPOnly bool          `flag:"cookie-httponly" cfg:"cookie_httponly"`
 
 	Upstreams          []string `flag:"upstream" cfg:"upstreams"`
 	SkipAuthRegex      []string `flag:"skip-auth-regex" cfg:"skip_auth_regex"`
 	PassBasicAuth      bool     `flag:"pass-basic-auth" cfg:"pass_basic_auth"`
 	BasicAuthPassword  string   `flag:"basic-auth-password" cfg:"basic_auth_password"`
-	PassAccessToken    bool     `flag:"pass-access-token" cfg:"pass_access_token"`
+	PassAccessToken    bool     `flag:"pass-access-token" cfg:"pass_accessToken"`
 	PassHostHeader     bool     `flag:"pass-host-header" cfg:"pass_host_header"`
 	SkipProviderButton bool     `flag:"skip-provider-button" cfg:"skip_provider_button"`
 
@@ -76,6 +82,7 @@ type Options struct {
 	CompiledRegex []*regexp.Regexp
 	provider      providers.Provider
 	signatureData *SignatureData
+	cloudfrontKey *rsa.PrivateKey
 }
 
 type SignatureData struct {
@@ -91,7 +98,7 @@ func NewOptions() *Options {
 		DisplayHtpasswdForm: true,
 		CookieName:          "_oauth2_proxy",
 		CookieSecure:        true,
-		CookieHttpOnly:      true,
+		CookieHTTPOnly:      true,
 		CookieExpire:        time.Duration(168) * time.Hour,
 		CookieRefresh:       time.Duration(0),
 		PassBasicAuth:       true,
@@ -153,6 +160,8 @@ func (o *Options) Validate() error {
 		}
 		o.CompiledRegex = append(o.CompiledRegex, CompiledRegex)
 	}
+
+	//here is where the overall provider and provider_data struct is initialized
 	msgs = parseProviderInfo(o, msgs)
 
 	if o.PassAccessToken || (o.CookieRefresh != time.Duration(0)) {
@@ -174,7 +183,7 @@ func (o *Options) Validate() error {
 			msgs = append(msgs, fmt.Sprintf(
 				"cookie_secret must be 16, 24, or 32 bytes "+
 					"to create an AES cipher when "+
-					"pass_access_token == true or "+
+					"pass_accessToken == true or "+
 					"cookie_refresh != 0, but is %d bytes.%s",
 				len(secretBytes(o.CookieSecret)), suffix))
 		}
@@ -203,6 +212,10 @@ func (o *Options) Validate() error {
 	msgs = parseSignatureKey(o, msgs)
 	msgs = validateCookieName(o, msgs)
 
+	if o.CloudFrontPKFile != "" {
+		msgs = parseCloudFrontKey(o, msgs)
+	}
+
 	if len(msgs) != 0 {
 		return fmt.Errorf("Invalid configuration:\n  %s",
 			strings.Join(msgs, "\n  "))
@@ -212,10 +225,13 @@ func (o *Options) Validate() error {
 
 func parseProviderInfo(o *Options, msgs []string) []string {
 	p := &providers.ProviderData{
-		Scope:          o.Scope,
-		ClientID:       o.ClientID,
-		ClientSecret:   o.ClientSecret,
-		ApprovalPrompt: o.ApprovalPrompt,
+		Scope:                o.Scope,
+		ClientID:             o.ClientID,
+		ClientSecret:         o.ClientSecret,
+		ApprovalPrompt:       o.ApprovalPrompt,
+		CloudfrontKey:        o.cloudfrontKey,
+		CloudfrontKeyID:      o.CloudFrontKeyID,
+		CloudfrontBaseDomain: o.CloudFrontBaseDomain,
 	}
 	p.LoginURL, msgs = parseURL(o.LoginURL, "login", msgs)
 	p.RedeemURL, msgs = parseURL(o.RedeemURL, "redeem", msgs)
@@ -223,6 +239,7 @@ func parseProviderInfo(o *Options, msgs []string) []string {
 	p.ValidateURL, msgs = parseURL(o.ValidateURL, "validate", msgs)
 	p.ProtectedResource, msgs = parseURL(o.ProtectedResource, "resource", msgs)
 
+	//new provider is created
 	o.provider = providers.New(o.Provider, p)
 	switch p := o.provider.(type) {
 	case *providers.AzureProvider:
@@ -268,6 +285,21 @@ func validateCookieName(o *Options, msgs []string) []string {
 	if cookie.String() == "" {
 		return append(msgs, fmt.Sprintf("invalid cookie name: %q", o.CookieName))
 	}
+}
+
+func parseCloudFrontKey(o *Options, msgs []string) []string {
+	if o.CloudFrontPKFile == "" {
+		return msgs
+	}
+
+	privKey, err := sign.LoadPEMPrivKeyFile(o.CloudFrontPKFile)
+	if err != nil {
+		fmt.Println("failed to load cloudfront key,", err)
+		return append(msgs, "failed to load cloudfront key")
+	} else {
+		o.cloudfrontKey = privKey
+	}
+
 	return msgs
 }
 

@@ -44,7 +44,7 @@ func NewMyUsaProvider(p *ProviderData) *MyUsaProvider {
 
 func (p *MyUsaProvider) GetEmailAddress(s *SessionState) (string, error) {
 	req, err := http.NewRequest("GET",
-		p.ProfileURL.String()+"?access_token="+s.AccessToken, nil)
+		p.ProfileURL.String()+"?accessToken="+s.AccessToken, nil)
 	if err != nil {
 		log.Printf("failed building request %s", err)
 		return "", err
