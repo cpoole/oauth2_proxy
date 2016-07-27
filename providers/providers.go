@@ -11,7 +11,7 @@ type Provider interface {
 	ValidateGroup(string) bool
 	ValidateSessionState(*SessionState) bool
 	GetLoginURL(redirectURI, finalRedirect string) string
-	RefreshSessionIfNeeded(*SessionState) (bool, error)
+	RefreshSessionIfNeeded(*SessionState) (bool, []string, error)
 	SessionFromCookie(string, *cookie.Cipher) (*SessionState, error)
 	CookieForSession(*SessionState, *cookie.Cipher) (string, error)
 }

@@ -87,8 +87,8 @@ func TestGitLabProviderGetEmailAddress(t *testing.T) {
 	b := testGitLabBackend("{\"email\": \"michael.bland@gsa.gov\"}")
 	defer b.Close()
 
-	b_url, _ := url.Parse(b.URL)
-	p := testGitLabProvider(b_url.Host)
+	bURL, _ := url.Parse(b.URL)
+	p := testGitLabProvider(bURL.Host)
 
 	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)
@@ -102,8 +102,8 @@ func TestGitLabProviderGetEmailAddressFailedRequest(t *testing.T) {
 	b := testGitLabBackend("unused payload")
 	defer b.Close()
 
-	b_url, _ := url.Parse(b.URL)
-	p := testGitLabProvider(b_url.Host)
+	bURL, _ := url.Parse(b.URL)
+	p := testGitLabProvider(bURL.Host)
 
 	// We'll trigger a request failure by using an unexpected access
 	// token. Alternatively, we could allow the parsing of the payload as
@@ -118,8 +118,8 @@ func TestGitLabProviderGetEmailAddressEmailNotPresentInPayload(t *testing.T) {
 	b := testGitLabBackend("{\"foo\": \"bar\"}")
 	defer b.Close()
 
-	b_url, _ := url.Parse(b.URL)
-	p := testGitLabProvider(b_url.Host)
+	bURL, _ := url.Parse(b.URL)
+	p := testGitLabProvider(bURL.Host)
 
 	session := &SessionState{AccessToken: "imaginary_accessToken"}
 	email, err := p.GetEmailAddress(session)

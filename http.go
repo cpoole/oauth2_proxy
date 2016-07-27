@@ -23,6 +23,7 @@ func (s *Server) ListenAndServe() {
 	}
 }
 
+//ServeHTTP is the method to serve http content
 func (s *Server) ServeHTTP() {
 	u, err := url.Parse(s.Opts.HttpAddress)
 	if err != nil {
@@ -53,6 +54,7 @@ func (s *Server) ServeHTTP() {
 	log.Printf("HTTP: closing %s", listener.Addr())
 }
 
+//ServeHTTPS is the method to serve https content
 func (s *Server) ServeHTTPS() {
 	addr := s.Opts.HttpsAddress
 	config := &tls.Config{

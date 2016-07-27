@@ -73,6 +73,11 @@ func main() {
 	flagSet.String("scope", "", "OAuth scope specification")
 	flagSet.String("approval-prompt", "force", "OAuth approval_prompt")
 
+	flagSet.String("cloudfront-pk-file", "", "specify path to cloudfront private key file")
+	flagSet.String("cloudfront-key-id", "", "cloudfront key pair ID")
+	flagSet.Uint("cloudfront-expiration", 1, "cloudfront cookie expiration in number of hours")
+	flagSet.String("cloudfront-base-domain", "", "cloudfront base domain for files to serve")
+
 	flagSet.String("signature-key", "", "GAP-Signature request signature key (algorithm:secretkey)")
 
 	flagSet.Parse(os.Args[1:])

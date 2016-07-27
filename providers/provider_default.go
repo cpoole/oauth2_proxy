@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -119,7 +120,9 @@ func (p *ProviderData) ValidateSessionState(s *SessionState) bool {
 	return validateToken(p, s.AccessToken, nil)
 }
 
-// RefreshSessionIfNeeded
-func (p *ProviderData) RefreshSessionIfNeeded(s *SessionState) (bool, error) {
-	return false, nil
+// RefreshSessionIfNeeded this is a comment
+func (p *ProviderData) RefreshSessionIfNeeded(s *SessionState) (bool, []string, error) {
+	//log.SetOutput(os.Stdout)
+	log.Output(1, "yoyoyo TEST LOG ==============================")
+	return false, []string{""}, nil
 }

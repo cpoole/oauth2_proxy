@@ -203,6 +203,10 @@ Usage of oauth2_proxy:
   -upstream=: the http url(s) of the upstream endpoint or file:// paths for static files. Routing is based on the path
   -validate-url="": Access token validation endpoint
   -version=false: print version string
+  -cloudfront-pk-file="": cloudfront private key file
+  -cloudfront-key-id="": cloudfront root key pair ID
+  -cloudfront-expiration=1: cloudfront cookie expiration in hours (uint)
+  -cloudfront-base-domain="": cloudfront base domain for files, glob fomat (*)
 ```
 
 See below for provider specific options

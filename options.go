@@ -26,6 +26,11 @@ type Options struct {
 	TLSCertFile  string `flag:"tls-cert" cfg:"tls_cert_file"`
 	TLSKeyFile   string `flag:"tls-key" cfg:"tls_key_file"`
 
+	CloudFrontPKFile     string `flag:"cloudfront-pk-file" cfg:"cloudfront_pk_file" env:"CLOUDFRONT_PK_FILE"`
+	CloudFrontKeyID      string `flag:"cloudfront-key-id" cfg:"cloudfront_key_id" env:"CLOUDFRONT_KEY_ID"`
+	CloudFrontExpiration uint   `flag:"cloudfront-expiration" cfg:"cloudfront-expiration" env:"CLOUDFRONT_EXPIRATION"`
+	CloudFrontBaseDomain string `flag:"cloudfront-base-domain" cfg:"cloudfront-base-domain" env:"CLOUDFRONT_BASE_DOMAIN"`
+
 	AuthenticatedEmailsFile  string   `flag:"authenticated-emails-file" cfg:"authenticated_emails_file"`
 	AzureTenant              string   `flag:"azure-tenant" cfg:"azure_tenant"`
 	EmailDomains             []string `flag:"email-domain" cfg:"email_domains"`
@@ -45,7 +50,7 @@ type Options struct {
 	CookieExpire   time.Duration `flag:"cookie-expire" cfg:"cookie_expire" env:"OAUTH2_PROXY_COOKIE_EXPIRE"`
 	CookieRefresh  time.Duration `flag:"cookie-refresh" cfg:"cookie_refresh" env:"OAUTH2_PROXY_COOKIE_REFRESH"`
 	CookieSecure   bool          `flag:"cookie-secure" cfg:"cookie_secure"`
-	CookieHttpOnly bool          `flag:"cookie-httponly" cfg:"cookie_httponly"`
+	CookieHTTPOnly bool          `flag:"cookie-httponly" cfg:"cookie_httponly"`
 
 	Upstreams          []string `flag:"upstream" cfg:"upstreams"`
 	SkipAuthRegex      []string `flag:"skip-auth-regex" cfg:"skip_auth_regex"`
@@ -91,7 +96,7 @@ func NewOptions() *Options {
 		DisplayHtpasswdForm: true,
 		CookieName:          "_oauth2_proxy",
 		CookieSecure:        true,
-		CookieHttpOnly:      true,
+		CookieHTTPOnly:      true,
 		CookieExpire:        time.Duration(168) * time.Hour,
 		CookieRefresh:       time.Duration(0),
 		PassBasicAuth:       true,

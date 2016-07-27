@@ -251,26 +251,26 @@ func (p *GoogleProvider) ValidateGroup(email string) bool {
 	return p.GroupValidator(email)
 }
 
-func (p *GoogleProvider) RefreshSessionIfNeeded(s *SessionState) (bool, error) {
+func (p *GoogleProvider) RefreshSessionIfNeeded(s *SessionState) (bool, []string, error) {
 	if s == nil || s.ExpiresOn.After(time.Now()) || s.RefreshToken == "" {
-		return false, nil
+		return false, []string{""}, nil
 	}
 
 	newToken, duration, err := p.redeemRefreshToken(s.RefreshToken)
 	if err != nil {
-		return false, err
+		return false, []string{""}, err
 	}
 
 	// re-check that the user is in the proper google group(s)
 	if !p.ValidateGroup(s.Email) {
-		return false, fmt.Errorf("%s is no longer in the group(s)", s.Email)
+		return false, []string{""}, fmt.Errorf("%s is no longer in the group(s)", s.Email)
 	}
 
 	origExpiration := s.ExpiresOn
 	s.AccessToken = newToken
 	s.ExpiresOn = time.Now().Add(duration).Truncate(time.Second)
 	log.Printf("refreshed access token %s (expired on %s)", s, origExpiration)
-	return true, nil
+	return true, []string{""}, nil
 }
 
 func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, expires time.Duration, err error) {
