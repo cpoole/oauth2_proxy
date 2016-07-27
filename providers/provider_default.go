@@ -124,5 +124,5 @@ func (p *ProviderData) ValidateSessionState(s *SessionState) bool {
 func (p *ProviderData) RefreshSessionIfNeeded(s *SessionState) (bool, []string, error) {
 	//log.SetOutput(os.Stdout)
 	log.Output(1, "yoyoyo TEST LOG ==============================")
-	return false, []string{""}, nil
+	return false, []string{"", "", ""}, nil
 }
