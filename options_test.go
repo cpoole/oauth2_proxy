@@ -22,7 +22,7 @@ func testOptions() *Options {
 }
 
 func errorMsg(msgs []string) string {
-	result := make([]string, 0)
+	var result []string
 	result = append(result, "Invalid configuration:")
 	result = append(result, msgs...)
 	return strings.Join(result, "\n  ")
@@ -101,7 +101,7 @@ func TestCompiledRegex(t *testing.T) {
 	regexps := []string{"/foo/.*", "/ba[rz]/quux"}
 	o.SkipAuthRegex = regexps
 	assert.Equal(t, nil, o.Validate())
-	actual := make([]string, 0)
+	var actual []string
 	for _, regex := range o.CompiledRegex {
 		actual = append(actual, regex.String())
 	}

@@ -71,6 +71,7 @@ type loggingHandler struct {
 	enabled bool
 }
 
+// LoggingHandler placeholder
 func LoggingHandler(out io.Writer, h http.Handler, v bool) http.Handler {
 	return loggingHandler{out, h, v}
 }

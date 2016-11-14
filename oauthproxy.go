@@ -21,9 +21,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudfront/sign"
 )
 
+// SignatureHeader google apps header string
 const SignatureHeader = "GAP-Signature"
 
-var SignatureHeaders []string = []string{
+// SignatureHeaders array of required header strings for authentication
+var SignatureHeaders = []string{
 	"Content-Length",
 	"Content-Md5",
 	"Content-Type",
@@ -36,6 +38,7 @@ var SignatureHeaders []string = []string{
 	"Gap-Auth",
 }
 
+// OAuthProxy the main oauth struct
 type OAuthProxy struct {
 	CookieSeed     string
 	CookieName     string
@@ -76,6 +79,7 @@ type OAuthProxy struct {
 	CloudFrontExpire time.Duration
 }
 
+// UpstreamProxy placeholder comment
 type UpstreamProxy struct {
 	upstream string
 	handler  http.Handler
@@ -91,9 +95,11 @@ func (u *UpstreamProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	u.handler.ServeHTTP(w, r)
 }
 
+// NewReverseProxy placeholder comment
 func NewReverseProxy(target *url.URL) (proxy *httputil.ReverseProxy) {
 	return httputil.NewSingleHostReverseProxy(target)
 }
+
 func setProxyUpstreamHostHeader(proxy *httputil.ReverseProxy, target *url.URL) {
 	director := proxy.Director
 	proxy.Director = func(req *http.Request) {
@@ -113,10 +119,13 @@ func setProxyDirector(proxy *httputil.ReverseProxy) {
 		req.URL.RawQuery = ""
 	}
 }
+
+// NewFileServer placeholder comment
 func NewFileServer(path string, filesystemPath string) (proxy http.Handler) {
 	return http.StripPrefix(path, http.FileServer(http.Dir(filesystemPath)))
 }
 
+// NewOAuthProxy placeholder comment
 func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 	serveMux := http.NewServeMux()
 	var auth hmacauth.HmacAuth
@@ -210,6 +219,7 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 	}
 }
 
+// GetRedirectURI placeholder comment
 func (p *OAuthProxy) GetRedirectURI(host string) string {
 	// default to the request Host if not set
 	if p.redirectURL.Host != "" {
@@ -248,6 +258,7 @@ func (p *OAuthProxy) redeemCode(host, code string) (s *providers.SessionState, e
 	return
 }
 
+// MakeCookie placeholder comment
 func (p *OAuthProxy) MakeCookie(req *http.Request, value string, expiration time.Duration, now time.Time) *http.Cookie {
 	domain := req.Host
 	if h, _, err := net.SplitHostPort(domain); err == nil {
@@ -274,10 +285,12 @@ func (p *OAuthProxy) MakeCookie(req *http.Request, value string, expiration time
 	}
 }
 
+// ClearCookie placeholder comment
 func (p *OAuthProxy) ClearCookie(rw http.ResponseWriter, req *http.Request) {
 	http.SetCookie(rw, p.MakeCookie(req, "", time.Hour*-1, time.Now()))
 }
 
+// SetCookie placeholder comment
 func (p *OAuthProxy) SetCookie(rw http.ResponseWriter, req *http.Request, val string) {
 	http.SetCookie(rw, p.MakeCookie(req, val, p.CookieExpire, time.Now()))
 }
@@ -315,6 +328,7 @@ func (p *OAuthProxy) LoadCookiedSession(req *http.Request) (*providers.SessionSt
 	return session, age, nil
 }
 
+// SaveSession Placeholder Comment
 func (p *OAuthProxy) SaveSession(rw http.ResponseWriter, req *http.Request, s *providers.SessionState) error {
 	//TODO: save cloudfront cookie
 	value, err := p.provider.CookieForSession(s, p.CookieCipher)
@@ -323,35 +337,46 @@ func (p *OAuthProxy) SaveSession(rw http.ResponseWriter, req *http.Request, s *p
 	}
 	p.SetCookie(rw, req, value)
 
-	if p.provider.Data().CloudfrontKey != nil {
+	if p.provider.Data().CloudfrontKeyID != "" {
 		// Create the new CookieSigner to get signed cookies for CloudFront
 		// resource requests
+		fmt.Println("user needs a cloudfront cookie")
 		signer := sign.NewCookieSigner(p.provider.Data().CloudfrontKeyID, p.provider.Data().CloudfrontKey)
 
+		log.Printf("Creating cloudfront cookies with \nDOMAIN: %s", p.CookieDomain)
 		// Get the cookies for the resource. These will be used
-		// to make the requests with
-		cloudFrontCookies, err := signer.Sign(p.provider.Data().CloudfrontBaseDomain, s.ExpiresOn)
+		// to make the requests with p.provider.Data().CloudfrontBaseDomain
+		baseURL := p.provider.Data().CloudfrontBaseDomain + "/*"
+		cloudFrontCookies, err := signer.Sign(baseURL, s.ExpiresOn, func(o *sign.CookieOptions) {
+			o.Domain = p.CookieDomain
+			o.Path = "/"
+			o.Secure = true
+		})
 		if err != nil {
 			fmt.Println("failed to sign cookies", err)
 		}
 		for _, c := range cloudFrontCookies {
 			http.SetCookie(rw, c)
+			//log.Printf("============ NAME: %s, VALUE: %s, DOMAIN: %s, PATH: %s", c.Name, c.Value, c.Domain, c.Path)
 		}
 	}
 
 	return nil
 }
 
+// RobotsTxt placeholder comment
 func (p *OAuthProxy) RobotsTxt(rw http.ResponseWriter) {
 	rw.WriteHeader(http.StatusOK)
 	fmt.Fprintf(rw, "User-agent: *\nDisallow: /")
 }
 
+// PingPage placeholder comment
 func (p *OAuthProxy) PingPage(rw http.ResponseWriter) {
 	rw.WriteHeader(http.StatusOK)
 	fmt.Fprintf(rw, "OK")
 }
 
+// ErrorPage placeholder comment
 func (p *OAuthProxy) ErrorPage(rw http.ResponseWriter, code int, title string, message string) {
 	log.Printf("ErrorPage %d %s %s", code, title, message)
 	rw.WriteHeader(code)
@@ -367,13 +392,14 @@ func (p *OAuthProxy) ErrorPage(rw http.ResponseWriter, code int, title string, m
 	p.templates.ExecuteTemplate(rw, "error.html", t)
 }
 
+// SignInPage placeholder comment
 func (p *OAuthProxy) SignInPage(rw http.ResponseWriter, req *http.Request, code int) {
 	p.ClearCookie(rw, req)
 	rw.WriteHeader(code)
 
-	redirect_url := req.URL.RequestURI()
-	if redirect_url == p.SignInPath {
-		redirect_url = "/"
+	redirectURL := req.URL.RequestURI()
+	if redirectURL == p.SignInPath {
+		redirectURL = "/"
 	}
 
 	t := struct {
@@ -388,7 +414,7 @@ func (p *OAuthProxy) SignInPage(rw http.ResponseWriter, req *http.Request, code 
 		ProviderName:  p.provider.Data().ProviderName,
 		SignInMessage: p.SignInMessage,
 		CustomLogin:   p.displayCustomLoginForm(),
-		Redirect:      redirect_url,
+		Redirect:      redirectURL,
 		Version:       VERSION,
 		ProxyPrefix:   p.ProxyPrefix,
 		Footer:        template.HTML(p.Footer),
@@ -396,6 +422,7 @@ func (p *OAuthProxy) SignInPage(rw http.ResponseWriter, req *http.Request, code 
 	p.templates.ExecuteTemplate(rw, "sign_in.html", t)
 }
 
+// ManualSignIn placeholder comment
 func (p *OAuthProxy) ManualSignIn(rw http.ResponseWriter, req *http.Request) (string, bool) {
 	if req.Method != "POST" || p.HtpasswdFile == nil {
 		return "", false
@@ -413,6 +440,7 @@ func (p *OAuthProxy) ManualSignIn(rw http.ResponseWriter, req *http.Request) (st
 	return "", false
 }
 
+// GetRedirect placeholder comment
 func (p *OAuthProxy) GetRedirect(req *http.Request) (string, error) {
 	err := req.ParseForm()
 
@@ -429,6 +457,7 @@ func (p *OAuthProxy) GetRedirect(req *http.Request) (string, error) {
 	return redirect, err
 }
 
+// IsWhitelistedPath placeholder comment
 func (p *OAuthProxy) IsWhitelistedPath(path string) (ok bool) {
 	for _, u := range p.compiledRegex {
 		ok = u.MatchString(path)
@@ -468,6 +497,7 @@ func (p *OAuthProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// SignIn placeholder comment
 func (p *OAuthProxy) SignIn(rw http.ResponseWriter, req *http.Request) {
 	redirect, err := p.GetRedirect(req)
 	if err != nil {
@@ -485,6 +515,7 @@ func (p *OAuthProxy) SignIn(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// OAuthStart placeholder comment
 func (p *OAuthProxy) OAuthStart(rw http.ResponseWriter, req *http.Request) {
 	redirect, err := p.GetRedirect(req)
 	if err != nil {
@@ -495,6 +526,7 @@ func (p *OAuthProxy) OAuthStart(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, p.provider.GetLoginURL(redirectURI, redirect), 302)
 }
 
+// OAuthCallback placeholder comment
 func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 	remoteAddr := getRemoteAddr(req)
 
@@ -538,6 +570,7 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// AuthenticateOnly placeholder comment
 func (p *OAuthProxy) AuthenticateOnly(rw http.ResponseWriter, req *http.Request) {
 	status := p.Authenticate(rw, req)
 	if status == http.StatusAccepted {
@@ -547,6 +580,7 @@ func (p *OAuthProxy) AuthenticateOnly(rw http.ResponseWriter, req *http.Request)
 	}
 }
 
+// Proxy placeholder comment
 func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 	status := p.Authenticate(rw, req)
 	if status == http.StatusInternalServerError {
@@ -563,7 +597,7 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-//Authenticate
+// Authenticate placeholder comment
 func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int {
 	var saveSession, clearSession, revalidated bool
 	remoteAddr := getRemoteAddr(req)
@@ -621,8 +655,8 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 
 	//you want to save the session
 	if saveSession && session != nil {
-		err := p.SaveSession(rw, req, session)
-		if err != nil {
+		err2 := p.SaveSession(rw, req, session)
+		if err2 != nil {
 			log.Printf("%s %s", remoteAddr, err)
 			return http.StatusInternalServerError
 		}
@@ -662,6 +696,7 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 	return http.StatusAccepted
 }
 
+// CheckBasicAuth placeholder comment
 func (p *OAuthProxy) CheckBasicAuth(req *http.Request) (*providers.SessionState, error) {
 	if p.HtpasswdFile == nil {
 		return nil, nil

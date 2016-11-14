@@ -17,11 +17,11 @@ import (
 	"github.com/bitly/oauth2_proxy/providers"
 )
 
-// Configuration Options that can be set by Command Line Flag, or Config File
+// Options configuration options that can be set by Command Line Flag, or Config File
 type Options struct {
 	ProxyPrefix  string `flag:"proxy-prefix" cfg:"proxy-prefix"`
-	HttpAddress  string `flag:"http-address" cfg:"http_address"`
-	HttpsAddress string `flag:"https-address" cfg:"https_address"`
+	HTTPAddress  string `flag:"http-address" cfg:"http_address"`
+	HTTPSAddress string `flag:"https-address" cfg:"https_address"`
 	RedirectURL  string `flag:"redirect-url" cfg:"redirect_url"`
 	ClientID     string `flag:"client-id" cfg:"client_id" env:"OAUTH2_PROXY_CLIENT_ID"`
 	ClientSecret string `flag:"client-secret" cfg:"client_secret" env:"OAUTH2_PROXY_CLIENT_SECRET"`
@@ -85,16 +85,18 @@ type Options struct {
 	cloudfrontKey *rsa.PrivateKey
 }
 
+// SignatureData information to sign the cookies
 type SignatureData struct {
 	hash crypto.Hash
 	key  string
 }
 
+// NewOptions placeholder comment
 func NewOptions() *Options {
 	return &Options{
 		ProxyPrefix:         "/oauth2",
-		HttpAddress:         "127.0.0.1:4180",
-		HttpsAddress:        ":443",
+		HTTPAddress:         "127.0.0.1:4180",
+		HTTPSAddress:        ":443",
 		DisplayHtpasswdForm: true,
 		CookieName:          "_oauth2_proxy",
 		CookieSecure:        true,
@@ -110,17 +112,18 @@ func NewOptions() *Options {
 	}
 }
 
-func parseURL(to_parse string, urltype string, msgs []string) (*url.URL, []string) {
-	parsed, err := url.Parse(to_parse)
+func parseURL(toParse string, urltype string, msgs []string) (*url.URL, []string) {
+	parsed, err := url.Parse(toParse)
 	if err != nil {
 		return nil, append(msgs, fmt.Sprintf(
-			"error parsing %s-url=%q %s", urltype, to_parse, err))
+			"error parsing %s-url=%q %s", urltype, toParse, err))
 	}
 	return parsed, msgs
 }
 
+// Validate placeholder comment
 func (o *Options) Validate() error {
-	msgs := make([]string, 0)
+	var msgs []string
 	if len(o.Upstreams) < 1 {
 		msgs = append(msgs, "missing setting: upstream")
 	}
@@ -135,6 +138,10 @@ func (o *Options) Validate() error {
 	}
 	if o.AuthenticatedEmailsFile == "" && len(o.EmailDomains) == 0 && o.HtpasswdFile == "" {
 		msgs = append(msgs, "missing setting for email validation: email-domain or authenticated-emails-file required.\n      use email-domain=* to authorize all email addresses")
+	}
+
+	if o.CloudFrontPKFile != "" {
+		msgs = parseCloudFrontKey(o, msgs)
 	}
 
 	o.redirectURL, msgs = parseURL(o.RedirectURL, "redirect", msgs)
@@ -165,17 +172,17 @@ func (o *Options) Validate() error {
 	msgs = parseProviderInfo(o, msgs)
 
 	if o.PassAccessToken || (o.CookieRefresh != time.Duration(0)) {
-		valid_cookie_secret_size := false
+		validCookieSecretSize := false
 		for _, i := range []int{16, 24, 32} {
 			if len(secretBytes(o.CookieSecret)) == i {
-				valid_cookie_secret_size = true
+				validCookieSecretSize = true
 			}
 		}
 		var decoded bool
 		if string(secretBytes(o.CookieSecret)) != o.CookieSecret {
 			decoded = true
 		}
-		if valid_cookie_secret_size == false {
+		if validCookieSecretSize == false {
 			var suffix string
 			if decoded {
 				suffix = fmt.Sprintf(" note: cookie secret was base64 decoded from %q", o.CookieSecret)
@@ -211,10 +218,6 @@ func (o *Options) Validate() error {
 
 	msgs = parseSignatureKey(o, msgs)
 	msgs = validateCookieName(o, msgs)
-
-	if o.CloudFrontPKFile != "" {
-		msgs = parseCloudFrontKey(o, msgs)
-	}
 
 	if len(msgs) != 0 {
 		return fmt.Errorf("Invalid configuration:\n  %s",
@@ -271,12 +274,13 @@ func parseSignatureKey(o *Options, msgs []string) []string {
 	}
 
 	algorithm, secretKey := components[0], components[1]
-	if hash, err := hmacauth.DigestNameToCryptoHash(algorithm); err != nil {
+	hash, err := hmacauth.DigestNameToCryptoHash(algorithm)
+	if err != nil {
 		return append(msgs, "unsupported signature hash algorithm: "+
 			o.SignatureKey)
-	} else {
-		o.signatureData = &SignatureData{hash, secretKey}
 	}
+	o.signatureData = &SignatureData{hash, secretKey}
+
 	return msgs
 }
 
@@ -285,6 +289,7 @@ func validateCookieName(o *Options, msgs []string) []string {
 	if cookie.String() == "" {
 		return append(msgs, fmt.Sprintf("invalid cookie name: %q", o.CookieName))
 	}
+	return msgs
 }
 
 func parseCloudFrontKey(o *Options, msgs []string) []string {
@@ -296,9 +301,9 @@ func parseCloudFrontKey(o *Options, msgs []string) []string {
 	if err != nil {
 		fmt.Println("failed to load cloudfront key,", err)
 		return append(msgs, "failed to load cloudfront key")
-	} else {
-		o.cloudfrontKey = privKey
 	}
+
+	o.cloudfrontKey = privKey
 
 	return msgs
 }

@@ -4,8 +4,10 @@ import (
 	"strings"
 )
 
+// StringArray placeholder
 type StringArray []string
 
+// Set placeholder
 func (a *StringArray) Set(s string) error {
 	*a = append(*a, s)
 	return nil

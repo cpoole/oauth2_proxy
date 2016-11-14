@@ -10,11 +10,13 @@ import (
 	"time"
 )
 
+// Server placeholder
 type Server struct {
 	Handler http.Handler
 	Opts    *Options
 }
 
+// ListenAndServe placeholder
 func (s *Server) ListenAndServe() {
 	if s.Opts.TLSKeyFile != "" || s.Opts.TLSCertFile != "" {
 		s.ServeHTTPS()
@@ -25,9 +27,9 @@ func (s *Server) ListenAndServe() {
 
 //ServeHTTP is the method to serve http content
 func (s *Server) ServeHTTP() {
-	u, err := url.Parse(s.Opts.HttpAddress)
+	u, err := url.Parse(s.Opts.HTTPAddress)
 	if err != nil {
-		log.Fatalf("FATAL: could not parse %#v: %v", s.Opts.HttpAddress, err)
+		log.Fatalf("FATAL: could not parse %#v: %v", s.Opts.HTTPAddress, err)
 	}
 
 	var networkType string
@@ -56,7 +58,7 @@ func (s *Server) ServeHTTP() {
 
 //ServeHTTPS is the method to serve https content
 func (s *Server) ServeHTTPS() {
-	addr := s.Opts.HttpsAddress
+	addr := s.Opts.HTTPSAddress
 	config := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		MaxVersion: tls.VersionTLS12,

@@ -10,11 +10,13 @@ import (
 	"unsafe"
 )
 
+// UserMap placeholder comment
 type UserMap struct {
 	usersFile string
 	m         unsafe.Pointer
 }
 
+// NewUserMap placeholder comment
 func NewUserMap(usersFile string, done <-chan bool, onUpdate func()) *UserMap {
 	um := &UserMap{usersFile: usersFile}
 	m := make(map[string]bool)
@@ -30,23 +32,25 @@ func NewUserMap(usersFile string, done <-chan bool, onUpdate func()) *UserMap {
 	return um
 }
 
+// IsValid placeholder comment
 func (um *UserMap) IsValid(email string) (result bool) {
 	m := *(*map[string]bool)(atomic.LoadPointer(&um.m))
 	_, result = m[email]
 	return
 }
 
+// LoadAuthenticatedEmailsFile placeholder comment
 func (um *UserMap) LoadAuthenticatedEmailsFile() {
 	r, err := os.Open(um.usersFile)
 	if err != nil {
 		log.Fatalf("failed opening authenticated-emails-file=%q, %s", um.usersFile, err)
 	}
 	defer r.Close()
-	csv_reader := csv.NewReader(r)
-	csv_reader.Comma = ','
-	csv_reader.Comment = '#'
-	csv_reader.TrimLeadingSpace = true
-	records, err := csv_reader.ReadAll()
+	csvReader := csv.NewReader(r)
+	csvReader.Comma = ','
+	csvReader.Comment = '#'
+	csvReader.TrimLeadingSpace = true
+	records, err := csvReader.ReadAll()
 	if err != nil {
 		log.Printf("error reading authenticated-emails-file=%q, %s", um.usersFile, err)
 		return
@@ -91,6 +95,7 @@ func newValidatorImpl(domains []string, usersFile string,
 	return validator
 }
 
+// NewValidator placeholder comment
 func NewValidator(domains []string, usersFile string) func(string) bool {
 	return newValidatorImpl(domains, usersFile, nil, func() {})
 }
